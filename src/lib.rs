@@ -19,18 +19,19 @@ struct Transform {
 }
 
 pub struct HarmonicMap {
-    levels: u8,
-    grids: Vec<Grid>,
+    grid: Grid,
     transform: Transform,
 }
 
 pub fn init(polygon: Polygon, levels: u8) -> HarmonicMap {
-    let grids = Vec::new();
+    // TODO
+    let grid = Grid { level: levels, grid: Vec::new() };
     let transform = Transform { offset: Point(0.0, 0.0), scaling: 0.0 };
-    HarmonicMap { levels: levels, grids: grids, transform: transform }
+    HarmonicMap { grid: grid, transform: transform }
 }
 
 pub fn eval(map: HarmonicMap, p: Point) -> f64 {
+    // TODO
     0.0
 }
 
