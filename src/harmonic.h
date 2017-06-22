@@ -9,7 +9,7 @@ struct GridValue {
 };
 
 struct HarmonicMap {
-  unsigned int level;
+  unsigned int size;
   struct GridValue *grid;
   double offset[2];
   double scaling;

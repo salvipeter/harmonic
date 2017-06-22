@@ -130,7 +130,7 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
   /* Create the grid */
   unsigned int n = pow(2, levels);
   struct HarmonicMap *map = (struct HarmonicMap *)malloc(sizeof(struct HarmonicMap));
-  map->level = levels;
+  map->size = n;
   map->grid = (struct GridValue *)malloc(n * n * sizeof(struct GridValue));
 
   /* Bounding box computation */
@@ -198,8 +198,17 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
 }
 
 double harmonic_eval(struct HarmonicMap *map, double *point) {
-  /* TODO */
-  return 0.0;
+  double x = (point[0] - map->offset[0]) / map->scaling;
+  double y = (point[1] - map->offset[1]) / map->scaling;
+  int i = (int)x, j = (int)y;
+  if (i == map->size - 1)
+    i = map->size - 2;
+  if (j == map->size - 1)
+    j = map->size - 2;
+  return map->grid[j*n+i] * (1.0 - y + j) * (1.0 - x + i) +
+    map->grid[(j+1)*n+i] * (y - j) * (1.0 - x + i) +
+    map->grid[j*n+i+1] * (1.0 - y + j) * (x - i) +
+    map->grid[(j+1)*n+i+1] * (y - j) * (x - i);
 }
 
 void harmonic_free(struct HarmonicMap *map) {
