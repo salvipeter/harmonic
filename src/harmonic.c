@@ -72,39 +72,35 @@ void solve(struct GridValue *grid, unsigned int level, double epsilon) {
 
   /* Solve by iteration */
   double change;
-  unsigned int count, iteration = 0;
-  struct GridValue *tmp = grid;
-  for (unsigned int i = 0; i < n * n; ++i)
-    tmp[i].type = grid[i].type;
   do {
-    ++iteration;
     change = 0.0;
-    count = 0;
+    unsigned int count = 0;
     for (unsigned int i = 0; i < n; ++i)
       for (unsigned int j = 0; j < n; ++j)
         if (grid[j*n+i].type == INTERIOR) {
           int neighbors = 0;
-          tmp[j*n+i].value = 0.0;
+          double old_value = grid[j*n+i].value;
+          grid[j*n+i].value = 0.0;
           if (j > 0 && grid[(j-1)*n+i].type != EXTERIOR) {
             ++neighbors;
-            tmp[j*n+i].value += grid[(j-1)*n+i].value;
+            grid[j*n+i].value += grid[(j-1)*n+i].value;
           }
           if (i > 0 && grid[j*n+i-1].type != EXTERIOR) {
             ++neighbors;
-            tmp[j*n+i].value += grid[j*n+i-1].value;
+            grid[j*n+i].value += grid[j*n+i-1].value;
           }
           if (j < n && grid[(j+1)*n+i].type != EXTERIOR) {
             ++neighbors;
-            tmp[j*n+i].value += grid[(j+1)*n+i].value;
+            grid[j*n+i].value += grid[(j+1)*n+i].value;
           }
           if (i < n && grid[j*n+i+1].type != EXTERIOR) {
             ++neighbors;
-            tmp[j*n+i].value += grid[j*n+i+1].value;
+            grid[j*n+i].value += grid[j*n+i+1].value;
           }
           assert(neighbors > 0);
-          tmp[j*n+i].value /= (double)neighbors;
+          grid[j*n+i].value /= (double)neighbors;
           ++count;
-          change += fabs(tmp[j*n+i].value - grid[j*n+i].value);
+          change += fabs(grid[j*n+i].value - old_value);
         }
     change /= (double)count;
   } while (change > epsilon);
@@ -198,6 +194,7 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
 }
 
 double harmonic_eval(struct HarmonicMap *map, double *point) {
+  unsigned int n = map->size;
   double x = (point[0] - map->offset[0]) / map->scaling;
   double y = (point[1] - map->offset[1]) / map->scaling;
   int i = (int)x, j = (int)y;
@@ -205,10 +202,10 @@ double harmonic_eval(struct HarmonicMap *map, double *point) {
     i = map->size - 2;
   if (j == map->size - 1)
     j = map->size - 2;
-  return map->grid[j*n+i] * (1.0 - y + j) * (1.0 - x + i) +
-    map->grid[(j+1)*n+i] * (y - j) * (1.0 - x + i) +
-    map->grid[j*n+i+1] * (1.0 - y + j) * (x - i) +
-    map->grid[(j+1)*n+i+1] * (y - j) * (x - i);
+  return map->grid[j*n+i].value * (1.0 - y + j) * (1.0 - x + i) +
+    map->grid[(j+1)*n+i].value * (y - j) * (1.0 - x + i) +
+    map->grid[j*n+i+1].value * (1.0 - y + j) * (x - i) +
+    map->grid[(j+1)*n+i+1].value * (y - j) * (x - i);
 }
 
 void harmonic_free(struct HarmonicMap *map) {
