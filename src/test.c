@@ -12,6 +12,7 @@ int main(int argc, char **argv) {
   struct HarmonicMap *map = harmonic_init(8, input, 9, 1.0e-5);
   double point[] = { 0.5, 0.5 };
   harmonic_eval(map, point);
+  harmonic_write_ppm(map, "/tmp/u.ppm");
   harmonic_free(map);
   return 0;
 }

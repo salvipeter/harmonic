@@ -104,21 +104,6 @@ void solve(struct GridValue *grid, unsigned int level, double epsilon) {
         }
     change /= (double)count;
   } while (change > epsilon);
-
-  /* Write a PPM file for testing */
-  char str[255];
-  sprintf(str, "/tmp/proba-%d.ppm", level);
-  FILE *f = fopen(str, "w");
-  fprintf(f, "P3\n%d %d\n255\n", n, n);
-  for (unsigned int i = 0; i < n; ++i) {
-    for (unsigned int j = 0; j < n; ++j)
-      if (grid[j*n+i].type == EXTERIOR)
-        fprintf(f, "255 0 0 ");
-      else
-        fprintf(f, "0 0 %d ", (int)(grid[j*n+i].value * 255.0));
-    fprintf(f, "\n");
-  }
-  fclose(f);
 }
 
 struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned int levels,
@@ -147,18 +132,18 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
   /* Add a margin of 2.5% on all sides */
   map->offset[0] = min[0] - length * 0.025;
   map->offset[1] = min[1] - length * 0.025;
-  map->scaling = length * 1.05 / (double)n;
+  map->scaling = (double)n / length / 1.05;
 
   /* Fill boundary cells */
   for (unsigned int i = 0; i < n * n; ++i)
     map->grid[i].type = UNTYPED;
-  int x0 = (points[size*3-3] - map->offset[0]) / map->scaling;
-  int y0 = (points[size*3-2] - map->offset[1]) / map->scaling;
+  int x0 = (points[size*3-3] - map->offset[0]) * map->scaling;
+  int y0 = (points[size*3-2] - map->offset[1]) * map->scaling;
   double v0 = points[size*3-1];
   for (unsigned int i = 0; i < size; ++i) {
     /* line drawing from Rosetta Code [Bresenham's algorithm] */
-    int x1 = (points[i*3] - map->offset[0]) / map->scaling;
-    int y1 = (points[i*3+1] - map->offset[1]) / map->scaling;
+    int x1 = (points[i*3] - map->offset[0]) * map->scaling;
+    int y1 = (points[i*3+1] - map->offset[1]) * map->scaling;
     double v1 = points[i*3+2];
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1; 
@@ -195,17 +180,33 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
 
 double harmonic_eval(struct HarmonicMap *map, double *point) {
   unsigned int n = map->size;
-  double x = (point[0] - map->offset[0]) / map->scaling;
-  double y = (point[1] - map->offset[1]) / map->scaling;
+  double x = (point[0] - map->offset[0]) * map->scaling;
+  double y = (point[1] - map->offset[1]) * map->scaling;
   int i = (int)x, j = (int)y;
   if (i == map->size - 1)
     i = map->size - 2;
   if (j == map->size - 1)
     j = map->size - 2;
+  /* TODO: check exterior cells */
   return map->grid[j*n+i].value * (1.0 - y + j) * (1.0 - x + i) +
     map->grid[(j+1)*n+i].value * (y - j) * (1.0 - x + i) +
     map->grid[j*n+i+1].value * (1.0 - y + j) * (x - i) +
     map->grid[(j+1)*n+i+1].value * (y - j) * (x - i);
+}
+
+void harmonic_write_ppm(struct HarmonicMap *map, char *filename) {
+  unsigned int n = map->size;
+  FILE *f = fopen(filename, "w");
+  fprintf(f, "P3\n%d %d\n255\n", n, n);
+  for (unsigned int i = 0; i < n; ++i) {
+    for (unsigned int j = 0; j < n; ++j)
+      if (map->grid[j*n+i].type == EXTERIOR)
+        fprintf(f, "255 0 0 ");
+      else
+        fprintf(f, "0 0 %d ", (int)(map->grid[j*n+i].value * 255.0));
+    fprintf(f, "\n");
+  }
+  fclose(f);
 }
 
 void harmonic_free(struct HarmonicMap *map) {

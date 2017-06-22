@@ -22,6 +22,8 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
 
 double harmonic_eval(struct HarmonicMap *map, double *point);
 
+void harmonic_write_ppm(struct HarmonicMap *map, char *filename);
+
 void harmonic_free(struct HarmonicMap *map);
 
 #endif
