@@ -129,7 +129,8 @@ Bool back_left_cell_empty(struct HarmonicMap *map, struct Position *p) {
 
 void flood_fill(struct HarmonicMap *map, unsigned int x, unsigned int y) {
   /* this algorithm goes along the right-hand walls like in a maze
-     mark is used to save a two-way position that we will visit again
+     mark is used to save a two-way position that maybe we have no path back to
+     - the mark can be cleared if we find a way back to it
      - if we visit it next time in the same direction, it can be painted
      - if in the other direction, there is a loop further down the path
        - backtrack shows that we are looking for this loop
@@ -183,7 +184,7 @@ void flood_fill(struct HarmonicMap *map, unsigned int x, unsigned int y) {
   case 1:
     /* If we are backtracking => set findloop and go along the wall
        If we are in findloop mode (and not backtracking) =>
-         go back to the mark if it is set, then go along the wall
+         re-validate the mark, then go along the wall
        If both left corners are empty =>
          we can forget the mark, paint the cell and go forward
        If at least one of the left corners is painted =>
@@ -191,8 +192,8 @@ void flood_fill(struct HarmonicMap *map, unsigned int x, unsigned int y) {
     if (backtrack)
       findloop = TRUE;
     else if (findloop) {
-      if (mark.valid)
-        cur = mark;
+      if (!mark.valid)
+        mark.valid = TRUE;
     } else if (front_left_cell_empty(map, &cur) && back_left_cell_empty(map, &cur)) {
       mark.valid = FALSE;
       get_cell(map, &cur)->type = EXTERIOR; /* Paint the current cell */
