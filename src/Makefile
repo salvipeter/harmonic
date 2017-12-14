@@ -1,6 +1,6 @@
 all: libharmonic.a test
 
-CFLAGS=-std=c99 -Wall -pedantic
+CFLAGS=-std=c99 -Wall -pedantic -g
 TARGET_DIR=../target
 
 libharmonic.a: harmonic.o

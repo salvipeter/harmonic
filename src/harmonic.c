@@ -5,6 +5,18 @@
 
 #include "harmonic.h"
 
+struct GridValue {
+  enum GridValueType { UNTYPED, EXTERIOR, BOUNDARY, INTERIOR } type;
+  double value;
+};
+
+struct HarmonicMap {
+  unsigned int size;
+  struct GridValue *grid;
+  double offset[2];
+  double scaling;
+};
+
 #define MIN_LEVEL 3
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -437,20 +449,44 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
   return map;
 }
 
-double harmonic_eval(struct HarmonicMap *map, double *point) {
+bool inside_map(struct HarmonicMap *map, int i, int j) {
+  return i >= 0 && j >= 0 && i < map->size && j < map->size;
+}
+
+/* TODO: How to handle exterior cells?! */
+bool harmonic_eval(struct HarmonicMap *map, double *point, double *value) {
   unsigned int n = map->size;
   double x = (point[0] - map->offset[0]) * map->scaling;
   double y = (point[1] - map->offset[1]) * map->scaling;
   int i = (int)x, j = (int)y;
-  if (i == map->size - 1)
-    i = map->size - 2;
-  if (j == map->size - 1)
-    j = map->size - 2;
-  /* TODO: check exterior cells */
-  return map->grid[j*n+i].value * (1.0 - y + j) * (1.0 - x + i) +
-    map->grid[(j+1)*n+i].value * (y - j) * (1.0 - x + i) +
-    map->grid[j*n+i+1].value * (1.0 - y + j) * (x - i) +
-    map->grid[(j+1)*n+i+1].value * (y - j) * (x - i);
+  
+  bool p[] = { false, false, false, false };
+  if (inside_map(map, i, j) && map->grid[j*n+i].type != EXTERIOR)
+    p[0] = true;
+  if (inside_map(map, i, j + 1) && map->grid[(j+1)*n+i].type != EXTERIOR)
+    p[1] = true;
+  if (inside_map(map, i + 1, j) && map->grid[j*n+i+1].type != EXTERIOR)
+    p[2] = true;
+  if (inside_map(map, i + 1, j + 1) && map->grid[(j+1)*n+i+1].type != EXTERIOR)
+    p[3] = true;
+
+  /* The point is outside the polygon */
+  if (!(p[0] || p[1] || p[2] || p[3]))
+    return false;
+
+  /* TODO: this handles point outside the polygon as 0 values,
+     which is clearly wrong */
+  *value = 0;
+  if (p[0])
+    *value += map->grid[j*n+i].value * (1.0 - y + j) * (1.0 - x + i);
+  if (p[1])
+    *value += map->grid[(j+1)*n+i].value * (y - j) * (1.0 - x + i);
+  if (p[2])
+    *value += map->grid[j*n+i+1].value * (1.0 - y + j) * (x - i);
+  if (p[3])
+    *value += map->grid[(j+1)*n+i+1].value * (y - j) * (x - i);
+
+  return true;
 }
 
 void harmonic_write_ppm(struct HarmonicMap *map, char *filename) {
