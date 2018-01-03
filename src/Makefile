@@ -1,13 +1,10 @@
-all: libharmonic.a test
+all: libharmonic.so test
 
 CFLAGS=-std=c99 -Wall -pedantic -g
 TARGET_DIR=../target
 
-libharmonic.a: harmonic.o
-	ar rcs $(TARGET_DIR)/$@ $(TARGET_DIR)/$<
+libharmonic.so: harmonic.c
+	gcc -fpic -shared $(CFLAGS) -o $(TARGET_DIR)/$@ $<
 
-harmonic.o: harmonic.c harmonic.h
-	gcc $(CFLAGS) -c -o $(TARGET_DIR)/$@ $<
-
-test: test.c libharmonic.a
+test: test.c libharmonic.so
 	gcc $(CFLAGS) -o $(TARGET_DIR)/$@ $< -L$(TARGET_DIR) -lharmonic -lm
