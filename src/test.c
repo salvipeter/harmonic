@@ -11,10 +11,17 @@ int main(int argc, char **argv) {
                      3, 3, 1,
                      2.5, 6, 0,
                      0, 6, 0 };
+  bool success;
+  double result, point[] = { 2, 2 };
   unsigned int levels = 9;
   struct HarmonicMap *map;
 
   map = harmonic_init(7, input, levels, 1.0e-5);
+  success = harmonic_eval(map, point, &result);
+  if (success)
+    printf("%lf\n", result);
+  else
+    printf("N/A\n");
   harmonic_write_ppm(map, "/tmp/test.ppm");
   harmonic_free(map);
   return 0;
