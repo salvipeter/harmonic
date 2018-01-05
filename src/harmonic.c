@@ -443,6 +443,27 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
       map->grid[i].value = 0.0;
     }
 
+  /* Add bogus values to exterior cells near the boundary to help evaluation */
+  for (unsigned int y = 1; y < n - 1; ++y)
+    for (unsigned int x = 1; x < n - 1; ++x) {
+      unsigned int i = y * n + x;
+      if (map->grid[i].type == EXTERIOR) {
+        unsigned int count = 0;
+        double value = 0.0;
+        for (int dy = -1; dy <= 1; ++dy) {
+          unsigned int j = i + dy * n;
+          for (int dx = -1; dx <= 1; ++dx) {
+            if (map->grid[j+dx].type == BOUNDARY) {
+              ++count;
+              value += map->grid[j+dx].value;
+            }
+          }
+        }
+        if (count > 0)
+          map->grid[i].value = value / count;
+      }
+    }
+
   /* Find the solution for the discrete problem */
   solve(map->grid, levels, epsilon);
 
@@ -453,38 +474,22 @@ bool inside_map(struct HarmonicMap *map, int i, int j) {
   return i >= 0 && j >= 0 && i < map->size && j < map->size;
 }
 
-/* TODO: How to handle exterior cells?! */
 bool harmonic_eval(struct HarmonicMap *map, double *point, double *value) {
   unsigned int n = map->size;
   double x = (point[0] - map->offset[0]) * map->scaling;
   double y = (point[1] - map->offset[1]) * map->scaling;
   int i = (int)x, j = (int)y;
   
-  bool p[] = { false, false, false, false };
-  if (inside_map(map, i, j) && map->grid[j*n+i].type != EXTERIOR)
-    p[0] = true;
-  if (inside_map(map, i, j + 1) && map->grid[(j+1)*n+i].type != EXTERIOR)
-    p[1] = true;
-  if (inside_map(map, i + 1, j) && map->grid[j*n+i+1].type != EXTERIOR)
-    p[2] = true;
-  if (inside_map(map, i + 1, j + 1) && map->grid[(j+1)*n+i+1].type != EXTERIOR)
-    p[3] = true;
+  if (!((inside_map(map, i, j) && map->grid[j*n+i].type != EXTERIOR) ||
+        (inside_map(map, i, j + 1) && map->grid[(j+1)*n+i].type != EXTERIOR) ||
+        (inside_map(map, i + 1, j) && map->grid[j*n+i+1].type != EXTERIOR) ||
+        (inside_map(map, i + 1, j + 1) && map->grid[(j+1)*n+i+1].type != EXTERIOR)))
+    return false;               /* The point is outside the region */
 
-  /* The point is outside the polygon */
-  if (!(p[0] || p[1] || p[2] || p[3]))
-    return false;
-
-  /* TODO: this handles point outside the polygon as 0 values,
-     which is clearly wrong */
-  *value = 0;
-  if (p[0])
-    *value += map->grid[j*n+i].value * (1.0 - y + j) * (1.0 - x + i);
-  if (p[1])
-    *value += map->grid[(j+1)*n+i].value * (y - j) * (1.0 - x + i);
-  if (p[2])
-    *value += map->grid[j*n+i+1].value * (1.0 - y + j) * (x - i);
-  if (p[3])
-    *value += map->grid[(j+1)*n+i+1].value * (y - j) * (x - i);
+  *value = map->grid[j*n+i].value * (1.0 - y + j) * (1.0 - x + i);
+  *value += map->grid[(j+1)*n+i].value * (y - j) * (1.0 - x + i);
+  *value += map->grid[j*n+i+1].value * (1.0 - y + j) * (x - i);
+  *value += map->grid[(j+1)*n+i+1].value * (y - j) * (x - i);
 
   return true;
 }
