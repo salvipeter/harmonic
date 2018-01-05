@@ -373,7 +373,8 @@ void solve(struct GridValue *grid, unsigned int level, double epsilon) {
           ++count;
           change += fabs(grid[j*n+i].value - old_value);
         }
-    change /= (double)count;
+    if (count)
+      change /= (double)count;
   } while (change > epsilon);
 }
 
