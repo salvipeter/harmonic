@@ -24,7 +24,7 @@ struct HarmonicMap {
 #define FALSE 0
 typedef char Bool;
 
-#define RECURSIVE_FLOOD_FILL
+/* #define RECURSIVE_FLOOD_FILL */
 #ifdef RECURSIVE_FLOOD_FILL
 
 void flood_fill(struct HarmonicMap *map, unsigned int x, unsigned int y) {
