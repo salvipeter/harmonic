@@ -24,274 +24,44 @@ struct HarmonicMap {
 #define FALSE 0
 typedef char Bool;
 
-/* #define RECURSIVE_FLOOD_FILL */
-#ifdef RECURSIVE_FLOOD_FILL
+typedef struct PointStack_ {
+  unsigned int x, y;
+  struct PointStack_ *next;
+} PointStack;
 
-void flood_fill(struct HarmonicMap *map, unsigned int x, unsigned int y) {
-  unsigned int n = map->size;
-  if (map->grid[y*n+x].type != UNTYPED)
-    return;
-  map->grid[y*n+x].type = EXTERIOR;
-  if (x > 0)
-    flood_fill(map, x - 1, y);
-  if (x < n - 1)
-    flood_fill(map, x + 1, y);
-  if (y > 0)
-    flood_fill(map, x, y - 1);
-  if (y < n - 1)
-    flood_fill(map, x, y + 1);
+PointStack *push(PointStack *ps, unsigned int x, unsigned int y) {
+  PointStack *e = (PointStack *)malloc(sizeof(PointStack));
+  e->x = x;
+  e->y = y;
+  e->next = ps;
+  return e;
 }
 
-#else // !RECURSIVE_FLOOD_FILL
-
-/* Flood fill implementation based on the fixed-memory algorithm pseudocode on Wikipedia */
-
-struct Position {
-  Bool valid;
-  int x, y;
-  enum Direction { LEFT, RIGHT, UP, DOWN } dir;
-};
-
-Bool is_valid(struct HarmonicMap *map, struct Position *p) {
-  unsigned int n = map->size;
-  if (p->x < 0 || p->y < 0 || p->x >= n || p->y >= n)
-    return FALSE;
-  return TRUE;
-}
-
-struct GridValue *get_cell(struct HarmonicMap *map, struct Position *p) {
-  return &map->grid[p->y*map->size+p->x];
-}
-
-void move_forward(struct Position *p) {
-  switch (p->dir) {
-  case LEFT:  p->x--; break;
-  case RIGHT: p->x++; break;
-  case UP:    p->y--; break;
-  case DOWN:  p->y++;
-  }
-}
-
-void turn_left(struct Position *p) {
-  switch (p->dir) {
-  case LEFT:  p->dir = DOWN;  break;
-  case RIGHT: p->dir = UP;    break;
-  case UP:    p->dir = LEFT;  break;
-  case DOWN:  p->dir = RIGHT; break;
-  }
-}
-
-void turn_right(struct Position *p) {
-  switch (p->dir) {
-  case LEFT:  p->dir = UP;    break;
-  case RIGHT: p->dir = DOWN;  break;
-  case UP:    p->dir = RIGHT; break;
-  case DOWN:  p->dir = LEFT;  break;
-  }
-}
-
-void turn_around(struct Position *p) {
-  turn_right(p);
-  turn_right(p);
-}
-
-Bool front_cell_empty(struct HarmonicMap *map, struct Position *p) {
-  struct Position q = *p;
-  move_forward(&q);
-  return is_valid(map, &q) && get_cell(map, &q)->type == UNTYPED;
-}
-
-Bool right_cell_empty(struct HarmonicMap *map, struct Position *p) {
-  struct Position q = *p;
-  turn_right(&q);
-  move_forward(&q);
-  return is_valid(map, &q) && get_cell(map, &q)->type == UNTYPED;
-}
-
-Bool left_cell_empty(struct HarmonicMap *map, struct Position *p) {
-  struct Position q = *p;
-  turn_left(&q);
-  move_forward(&q);
-  return is_valid(map, &q) && get_cell(map, &q)->type == UNTYPED;
-}
-
-Bool back_cell_empty(struct HarmonicMap *map, struct Position *p) {
-  struct Position q = *p;
-  turn_around(&q);
-  move_forward(&q);
-  return is_valid(map, &q) && get_cell(map, &q)->type == UNTYPED;
-}
-
-Bool front_left_cell_empty(struct HarmonicMap *map, struct Position *p) {
-  struct Position q = *p;
-  move_forward(&q);
-  turn_left(&q);
-  move_forward(&q);
-  return is_valid(map, &q) && get_cell(map, &q)->type == UNTYPED;
-}
-
-Bool back_left_cell_empty(struct HarmonicMap *map, struct Position *p) {
-  struct Position q = *p;
-  turn_left(&q);
-  move_forward(&q);
-  turn_left(&q);
-  move_forward(&q);
-  return is_valid(map, &q) && get_cell(map, &q)->type == UNTYPED;
+PointStack *pop(PointStack *ps) {
+  PointStack *next = ps->next;
+  free(ps);
+  return next;
 }
 
 void flood_fill(struct HarmonicMap *map, unsigned int x, unsigned int y) {
-  /* this algorithm goes along the right-hand walls like in a maze
-     mark is used to save a two-way position that maybe we have no path back to
-     - the mark can be cleared if we find a way back to it
-     - if we visit it next time in the same direction, it can be painted
-     - if in the other direction, there is a loop further down the path
-       - backtrack shows that we are looking for this loop
-       - mark2 is used to save a two-way position inside this loop
-       - findloop shows if there was a fork in the road since backtracking started */
-  struct Position cur, mark, mark2;
-  Bool backtrack, findloop;
-  unsigned char count;
-  cur.valid = TRUE; cur.x = x; cur.y = y; cur.dir = LEFT;
-  mark.valid = FALSE; mark2.valid = FALSE;
-  backtrack = FALSE; findloop = FALSE;
-
-  /* Find a wall */
-  while (front_cell_empty(map, &cur)) {
-    move_forward(&cur);
-  }
-
-  goto start;
-
- main_loop:
-  /* Move forward and turn right if there is a path;
-     set findloop if there is an alternative path and backtrack is set */
-  move_forward(&cur);
-  if (right_cell_empty(map, &cur)) {
-    if (backtrack && !findloop && (front_cell_empty(map, &cur) || left_cell_empty(map, &cur)))
-      findloop = TRUE;
-    turn_right(&cur);
- paint:
-    move_forward(&cur);
-  }
-
- start:
-  /* Count surrounding walls */
-  count = 0;
-  if (!front_cell_empty(map, &cur)) ++count;
-  if (!right_cell_empty(map, &cur)) ++count;
-  if (!left_cell_empty(map, &cur))  ++count;
-  if (!back_cell_empty(map, &cur))  ++count;
-
-  /* Turn until there is a wall on the right-hand side and an empty cell in front */
-  if (count < 4) {
-    do {
-      turn_right(&cur);
-    } while(front_cell_empty(map, &cur));
-    do {
-      turn_left(&cur);
-    } while(!front_cell_empty(map, &cur));
-  }
-
-  switch (count) {
-  case 1:
-    /* If we are backtracking => set findloop and go along the wall
-       If we are in findloop mode (and not backtracking) =>
-         re-validate the mark, then go along the wall
-       If both left corners are empty =>
-         we can forget the mark, paint the cell and go forward
-       If at least one of the left corners is painted =>
-         we cannot paint, as this could subdivide the region -> go along the wall */
-    if (backtrack)
-      findloop = TRUE;
-    else if (findloop) {
-      if (!mark.valid)
-        mark.valid = TRUE;
-    } else if (front_left_cell_empty(map, &cur) && back_left_cell_empty(map, &cur)) {
-      mark.valid = FALSE;
-      get_cell(map, &cur)->type = EXTERIOR; /* Paint the current cell */
-      goto paint;
-    }
-    break;
-  case 2:
-    if (!back_cell_empty(map, &cur)) {
-      /* Exits: front & left
-         If the front-left corner is painted =>
-           we cannot paint, as this could subdivide the region -> go along the wall
-         Otherwise we can forget the mark, paint the cell and go forward */
-      if (front_left_cell_empty(map, &cur)) {
-        mark.valid = FALSE;
-        get_cell(map, &cur)->type = EXTERIOR; /* Paint the current cell */
-        goto paint;
-      }
-    } else if (!mark.valid) {
-      /* Exits: front & back, mark is not set =>
-           we cannot paint, as this could cut us off -> save position and go along the wall */
-      mark = cur;
-      mark2.valid = FALSE;
-      findloop = FALSE;
-      backtrack = FALSE;
-    } else {
-      /* Exits: front & back, mark is set */
-      if (!mark2.valid) {
-        if (cur.x == mark.x && cur.y == mark.y) {
-          /* We are at the (only) marked position */
-          if (cur.dir == mark.dir) {
-            /* Same direction => found a loop, so it is safe to paint
-                 delete mark, and go the other way (exploring the left wall side) */
-            mark.valid = FALSE;
-            turn_around(&cur);
-            get_cell(map, &cur)->type = EXTERIOR; /* Paint the current cell */
-            goto paint;
-          } else {
-            /* There was a loop somewhere - go for another round with backtracking */
-            backtrack = TRUE;
-            findloop = FALSE;
-            cur.dir = mark.dir;
-          }
-        } else if (findloop) {
-          /* We are at an unmarked position wanting to find a loop =>
-               place another mark and go along the wall */
-          mark2 = cur;
-        }
-      } else {
-        if (cur.x == mark.x && cur.y == mark.y) {
-          /* We are back at mark, having explored the loop and marked a point of it =>
-               go to mark2 - this is a point in the loop, so it is safe to paint
-                 delete both marks, and go the other way (exploring the left wall side) */
-          cur = mark2;
-          mark.valid = FALSE;
-          mark2.valid = FALSE;
-          backtrack = FALSE;
-          turn_around(&cur);
-          get_cell(map, &cur)->type = EXTERIOR; /* Paint the current cell */
-          goto paint;
-        } else if (cur.x == mark2.x && cur.y == mark2.y) {
-          /* We are back at mark2, so the loop is further down the path =>
-               let this be the main mark, and continue in the old direction */
-          mark = mark2;
-          cur.dir = mark2.dir;
-          mark2.valid = FALSE;
-        }
-      }
-    }
-    break;
-  case 3:
-    /* Forget mark, paint the current cell and go forward */
-    mark.valid = FALSE;
-    get_cell(map, &cur)->type = EXTERIOR; /* Paint the current cell */
-    goto paint;
-  case 4:
-    /* Paint the last cell and exit */
-    get_cell(map, &cur)->type = EXTERIOR;
-    return;
-  default:
-    break;
-  }
-
-  goto main_loop;
+  unsigned int n = map->size;
+  PointStack *ps = push(NULL, x, y);
+  do {
+    x = ps->x; y = ps->y;
+    ps = pop(ps);
+    if (map->grid[y*n+x].type != UNTYPED)
+      continue;
+    map->grid[y*n+x].type = EXTERIOR;
+    if (x > 0)
+      ps = push(ps, x - 1, y);
+    if (x < n - 1)
+      ps = push(ps, x + 1, y);
+    if (y > 0)
+      ps = push(ps, x, y - 1);
+    if (y < n - 1)
+      ps = push(ps, x, y + 1);
+  } while (ps);
 }
-
-#endif
 
 void solve(struct GridValue *grid, unsigned int level, double epsilon) {
   unsigned int n = pow(2, level);
