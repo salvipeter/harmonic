@@ -64,10 +64,10 @@ void flood_fill(struct HarmonicMap *map, unsigned int x, unsigned int y) {
 }
 
 void solve(struct GridValue *grid, unsigned int level, double epsilon) {
-  unsigned int n = pow(2, level);
+  unsigned int n = (unsigned int)pow(2, level);
   if (level > MIN_LEVEL) {
     /* Generate a coarser grid and solve that first to get good starting values */
-    unsigned int level1 = level - 1, n1 = pow(2, level1);
+    unsigned int level1 = level - 1, n1 = (unsigned int)pow(2, level1);
     struct GridValue *grid1 = (struct GridValue *)malloc(n1 * n1 * sizeof(struct GridValue));
     for (unsigned int i = 0; i < n1; ++i)
       for (unsigned int j = 0; j < n1; ++j) {
@@ -151,7 +151,7 @@ void solve(struct GridValue *grid, unsigned int level, double epsilon) {
 struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned int levels,
                                   double epsilon) {
   /* Create the grid */
-  unsigned int n = pow(2, levels);
+  unsigned int n = (unsigned int)pow(2, levels);
   struct HarmonicMap *map = (struct HarmonicMap *)malloc(sizeof(struct HarmonicMap));
   map->size = n;
   map->grid = (struct GridValue *)malloc(n * n * sizeof(struct GridValue));
@@ -179,13 +179,13 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
   /* Fill boundary cells */
   for (unsigned int i = 0; i < n * n; ++i)
     map->grid[i].type = UNTYPED;
-  int x0 = (points[size*3-3] - map->offset[0]) * map->scaling;
-  int y0 = (points[size*3-2] - map->offset[1]) * map->scaling;
+  int x0 = (int)((points[size*3-3] - map->offset[0]) * map->scaling);
+  int y0 = (int)((points[size*3-2] - map->offset[1]) * map->scaling);
   double v0 = points[size*3-1];
   for (unsigned int i = 0; i < size; ++i) {
     /* line drawing from Rosetta Code [Bresenham's algorithm] */
-    int x1 = (points[i*3] - map->offset[0]) * map->scaling;
-    int y1 = (points[i*3+1] - map->offset[1]) * map->scaling;
+    int x1 = (int)((points[i*3] - map->offset[0]) * map->scaling);
+    int y1 = (int)((points[i*3+1] - map->offset[1]) * map->scaling);
     double v1 = points[i*3+2];
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1; 
@@ -241,7 +241,7 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
   return map;
 }
 
-bool inside_map(struct HarmonicMap *map, int i, int j) {
+bool inside_map(struct HarmonicMap *map, unsigned int i, unsigned int j) {
   return i >= 0 && j >= 0 && i < map->size && j < map->size;
 }
 
