@@ -20,6 +20,14 @@ void harmonic_write_ppm(struct HarmonicMap *map, char *filename);
 
 void harmonic_free(struct HarmonicMap *map);
 
+/* Returns the number of vertices */
+unsigned int harmonic_mesh_size(struct HarmonicMap *map, unsigned int downsampling);
+
+/* vertices should be 2*mesh_size long, triangles 6*mesh_size
+   the return value is the real number of triangles */
+unsigned int harmonic_mesh(struct HarmonicMap *map, unsigned int downsampling,
+                           double *vertices, unsigned int *triangles);
+
 #ifdef __cplusplus
 }
 #endif

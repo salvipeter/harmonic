@@ -284,3 +284,66 @@ void harmonic_free(struct HarmonicMap *map) {
   free(map->grid);
   free(map);
 }
+
+unsigned int harmonic_mesh_size(struct HarmonicMap *map, unsigned int downsampling) {
+  unsigned int n = map->size, count = 0;
+  unsigned int k = (unsigned int)pow(2, downsampling);
+  for (unsigned int j = k; j < n; j += k)
+    for (unsigned int i = 0; i < n - k; i += k)
+      if (map->grid[j*n+i].type != EXTERIOR)
+        ++count;
+  return count;
+}
+
+unsigned int harmonic_mesh(struct HarmonicMap *map, unsigned int downsampling,
+                           double *vertices, unsigned int *triangles) {
+  unsigned int n = map->size, index = 0, count = 0;
+  unsigned int k = (unsigned int)pow(2, downsampling);
+  unsigned int *row = (unsigned int *)malloc(sizeof(unsigned int) * n);
+
+  /* Note: because of the enlargement, there can be no vertices in the first row,
+     or at the end of a row, thus simplifying the algorithm. */
+
+  for (unsigned int j = k; j < n; j += k) {
+    for (unsigned int i = 0; i < n - k; i += k) {
+      if (map->grid[j*n+i].type == EXTERIOR)
+        continue;
+
+      if (map->grid[(j-k)*n+i+k].type == EXTERIOR) {
+        /* no NE */
+        if (map->grid[(j-k)*n+i].type != EXTERIOR &&
+            map->grid[j*n+i+k].type != EXTERIOR) {
+          /* N & E */
+          triangles[3*count+0] = index;
+          triangles[3*count+1] = row[i];
+          triangles[3*count+2] = index + 1;
+          ++count;
+        }
+      } else {
+        if (map->grid[(j-k)*n+i].type != EXTERIOR) {
+          /* N & NE */
+          triangles[3*count+0] = index;
+          triangles[3*count+1] = row[i];
+          triangles[3*count+2] = row[i+k];
+          ++count;
+        }
+        if (map->grid[j*n+i+k].type != EXTERIOR) {
+          /* E & NE */
+          triangles[3*count+0] = index;
+          triangles[3*count+1] = row[i+k];
+          triangles[3*count+2] = index + 1;
+          ++count;
+        }
+      }
+
+      /* Update row */
+      vertices[2*index+0] = (double)i / map->scaling + map->offset[0];
+      vertices[2*index+1] = (double)j / map->scaling + map->offset[1];
+      row[i] = index++;
+    }
+  }
+
+  free(row);
+
+  return count;
+}
