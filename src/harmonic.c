@@ -179,13 +179,13 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
   /* Fill boundary cells */
   for (unsigned int i = 0; i < n * n; ++i)
     map->grid[i].type = UNTYPED;
-  int x0 = (int)((points[size*3-3] - map->offset[0]) * map->scaling);
-  int y0 = (int)((points[size*3-2] - map->offset[1]) * map->scaling);
+  int x0 = (int)round((points[size*3-3] - map->offset[0]) * map->scaling);
+  int y0 = (int)round((points[size*3-2] - map->offset[1]) * map->scaling);
   double v0 = points[size*3-1];
   for (unsigned int i = 0; i < size; ++i) {
     /* line drawing from Rosetta Code [Bresenham's algorithm] */
-    int x1 = (int)((points[i*3] - map->offset[0]) * map->scaling);
-    int y1 = (int)((points[i*3+1] - map->offset[1]) * map->scaling);
+    int x1 = (int)round((points[i*3] - map->offset[0]) * map->scaling);
+    int y1 = (int)round((points[i*3+1] - map->offset[1]) * map->scaling);
     double v1 = points[i*3+2];
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1; 
@@ -249,7 +249,7 @@ bool harmonic_eval(struct HarmonicMap *map, double *point, double *value) {
   unsigned int n = map->size;
   double x = (point[0] - map->offset[0]) * map->scaling;
   double y = (point[1] - map->offset[1]) * map->scaling;
-  int i = (int)x, j = (int)y;
+  int i = (int)round(x), j = (int)round(y);
   
   if (!((inside_map(map, i, j) && map->grid[j*n+i].type != EXTERIOR) ||
         (inside_map(map, i, j + 1) && map->grid[(j+1)*n+i].type != EXTERIOR) ||
@@ -274,7 +274,7 @@ void harmonic_write_ppm(struct HarmonicMap *map, char *filename) {
       if (map->grid[j*n+i].type == EXTERIOR)
         fprintf(f, "255 0 0 ");
       else
-        fprintf(f, "0 0 %d ", (int)(map->grid[j*n+i].value * 255.0));
+        fprintf(f, "0 0 %d ", (int)round(map->grid[j*n+i].value * 255.0));
     fprintf(f, "\n");
   }
   fclose(f);
