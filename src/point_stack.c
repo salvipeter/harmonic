@@ -24,12 +24,14 @@ void point_stack_free(point_stack_t *ps) {
 }
 
 void point_stack_push(point_stack_t *ps, size_t x, size_t y) {
-  if (ps->capacity == 0) {
-    ps->capacity = 1;
-    ps->data = (point_t *)malloc(sizeof(point_t));
-  } else if (ps->size == ps->capacity) {
-    ps->capacity *= 2;
-    ps->data = (point_t *)realloc(ps->data, sizeof(point_t) * ps->capacity);
+  if (ps->size == ps->capacity) {
+    if (ps->capacity == 0) {
+      ps->capacity = 1;
+      ps->data = (point_t *)malloc(sizeof(point_t));
+    } else {
+      ps->capacity *= 2;
+      ps->data = (point_t *)realloc(ps->data, sizeof(point_t) * ps->capacity);
+    }
   }
   ps->data[ps->size].x = x;
   ps->data[ps->size].y = y;
