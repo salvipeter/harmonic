@@ -133,9 +133,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\harmonic.c" />
+    <ClCompile Include="src\point_stack.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\harmonic.h" />
+    <ClInclude Include="src\point_stack.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
