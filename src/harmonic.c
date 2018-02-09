@@ -21,9 +21,6 @@ struct HarmonicMap {
 #define MIN_LEVEL 3
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
-#define TRUE 1
-#define FALSE 0
-typedef char Bool;
 
 void flood_fill(struct HarmonicMap *map, size_t x, size_t y) {
   size_t n = map->size;
