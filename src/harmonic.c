@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "harmonic.h"
+#include "point_stack.h"
 
 struct GridValue {
   enum GridValueType { UNTYPED, EXTERIOR, BOUNDARY, INTERIOR } type;
@@ -11,7 +12,7 @@ struct GridValue {
 };
 
 struct HarmonicMap {
-  unsigned int size;
+  size_t size;
   struct GridValue *grid;
   double offset[2];
   double scaling;
@@ -24,53 +25,36 @@ struct HarmonicMap {
 #define FALSE 0
 typedef char Bool;
 
-typedef struct PointStack_ {
-  unsigned int x, y;
-  struct PointStack_ *next;
-} PointStack;
-
-PointStack *push(PointStack *ps, unsigned int x, unsigned int y) {
-  PointStack *e = (PointStack *)malloc(sizeof(PointStack));
-  e->x = x;
-  e->y = y;
-  e->next = ps;
-  return e;
-}
-
-PointStack *pop(PointStack *ps) {
-  PointStack *next = ps->next;
-  free(ps);
-  return next;
-}
-
-void flood_fill(struct HarmonicMap *map, unsigned int x, unsigned int y) {
-  unsigned int n = map->size;
-  PointStack *ps = push(NULL, x, y);
+void flood_fill(struct HarmonicMap *map, size_t x, size_t y) {
+  size_t n = map->size;
+  struct point_stack_t *ps = point_stack_new();
+  point_stack_push(ps, x, y);
   do {
-    x = ps->x; y = ps->y;
-    ps = pop(ps);
+    point_stack_top(ps, &x, &y);
+    point_stack_pop(ps);
     if (map->grid[y*n+x].type != UNTYPED)
       continue;
     map->grid[y*n+x].type = EXTERIOR;
     if (x > 0)
-      ps = push(ps, x - 1, y);
+      point_stack_push(ps, x - 1, y);
     if (x < n - 1)
-      ps = push(ps, x + 1, y);
+      point_stack_push(ps, x + 1, y);
     if (y > 0)
-      ps = push(ps, x, y - 1);
+      point_stack_push(ps, x, y - 1);
     if (y < n - 1)
-      ps = push(ps, x, y + 1);
-  } while (ps);
+      point_stack_push(ps, x, y + 1);
+  } while (!point_stack_empty(ps));
+  point_stack_free(ps);
 }
 
-void solve(struct GridValue *grid, unsigned int level, double epsilon) {
-  unsigned int n = (unsigned int)pow(2, level);
+void solve(struct GridValue *grid, size_t level, double epsilon) {
+  size_t n = (size_t)pow(2, level);
   if (level > MIN_LEVEL) {
     /* Generate a coarser grid and solve that first to get good starting values */
-    unsigned int level1 = level - 1, n1 = (unsigned int)pow(2, level1);
+    size_t level1 = level - 1, n1 = (size_t)pow(2, level1);
     struct GridValue *grid1 = (struct GridValue *)malloc(n1 * n1 * sizeof(struct GridValue));
-    for (unsigned int i = 0; i < n1; ++i)
-      for (unsigned int j = 0; j < n1; ++j) {
+    for (size_t i = 0; i < n1; ++i)
+      for (size_t j = 0; j < n1; ++j) {
         if (grid[2*j*n+2*i].type == BOUNDARY ||
             (i < n1 && grid[2*j*n+2*i+1].type == BOUNDARY) ||
             (j < n1 && grid[(2*j+1)*n+2*i].type == BOUNDARY) ||
@@ -104,8 +88,8 @@ void solve(struct GridValue *grid, unsigned int level, double epsilon) {
         }
       }
     solve(grid1, level1, epsilon);
-    for (unsigned int i = 0; i < n; ++i)
-      for (unsigned int j = 0; j < n; ++j)
+    for (size_t i = 0; i < n; ++i)
+      for (size_t j = 0; j < n; ++j)
         if (grid[j*n+i].type == INTERIOR)
           grid[j*n+i].value = grid1[(j/2)*n1+i/2].value;
     free(grid1);
@@ -115,9 +99,9 @@ void solve(struct GridValue *grid, unsigned int level, double epsilon) {
   double change;
   do {
     change = 0.0;
-    unsigned int count = 0;
-    for (unsigned int i = 0; i < n; ++i)
-      for (unsigned int j = 0; j < n; ++j)
+    size_t count = 0;
+    for (size_t i = 0; i < n; ++i)
+      for (size_t j = 0; j < n; ++j)
         if (grid[j*n+i].type == INTERIOR) {
           int neighbors = 0;
           double old_value = grid[j*n+i].value;
@@ -148,10 +132,9 @@ void solve(struct GridValue *grid, unsigned int level, double epsilon) {
   } while (change > epsilon);
 }
 
-struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned int levels,
-                                  double epsilon) {
+struct HarmonicMap *harmonic_init(size_t size, double *points, size_t levels, double epsilon) {
   /* Create the grid */
-  unsigned int n = (unsigned int)pow(2, levels);
+  size_t n = (size_t)pow(2, levels);
   struct HarmonicMap *map = (struct HarmonicMap *)malloc(sizeof(struct HarmonicMap));
   map->size = n;
   map->grid = (struct GridValue *)malloc(n * n * sizeof(struct GridValue));
@@ -159,7 +142,7 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
   /* Bounding box computation */
   double min[2], max[2];
   min[0] = max[0] = points[0]; min[1] = max[1] = points[1];
-  for (unsigned int i = 1; i < size; ++i) {
+  for (size_t i = 1; i < size; ++i) {
     if (points[i*3] < min[0])
       min[0] = points[i*3];
     else if (points[i*3] > max[0])
@@ -177,12 +160,12 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
   map->scaling = (double)n / length / 1.05;
 
   /* Fill boundary cells */
-  for (unsigned int i = 0; i < n * n; ++i)
+  for (size_t i = 0; i < n * n; ++i)
     map->grid[i].type = UNTYPED;
   int x0 = (int)round((points[size*3-3] - map->offset[0]) * map->scaling);
   int y0 = (int)round((points[size*3-2] - map->offset[1]) * map->scaling);
   double v0 = points[size*3-1];
-  for (unsigned int i = 0; i < size; ++i) {
+  for (size_t i = 0; i < size; ++i) {
     /* line drawing from Rosetta Code [Bresenham's algorithm] */
     int x1 = (int)round((points[i*3] - map->offset[0]) * map->scaling);
     int y1 = (int)round((points[i*3+1] - map->offset[1]) * map->scaling);
@@ -208,21 +191,21 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
 
   /* Fill exterior and interior */
   flood_fill(map, 0, 0);
-  for (unsigned int i = 0; i < n * n; ++i)
+  for (size_t i = 0; i < n * n; ++i)
     if (map->grid[i].type == UNTYPED) {
       map->grid[i].type = INTERIOR;
       map->grid[i].value = 0.0;
     }
 
   /* Add bogus values to exterior cells near the boundary to help evaluation */
-  for (unsigned int y = 1; y < n - 1; ++y)
-    for (unsigned int x = 1; x < n - 1; ++x) {
-      unsigned int i = y * n + x;
+  for (size_t y = 1; y < n - 1; ++y)
+    for (size_t x = 1; x < n - 1; ++x) {
+      size_t i = y * n + x;
       if (map->grid[i].type == EXTERIOR) {
-        unsigned int count = 0;
+        size_t count = 0;
         double value = 0.0;
         for (int dy = -1; dy <= 1; ++dy) {
-          unsigned int j = i + dy * n;
+          size_t j = i + dy * n;
           for (int dx = -1; dx <= 1; ++dx) {
             if (map->grid[j+dx].type == BOUNDARY) {
               ++count;
@@ -241,12 +224,12 @@ struct HarmonicMap *harmonic_init(unsigned int size, double *points, unsigned in
   return map;
 }
 
-bool inside_map(struct HarmonicMap *map, unsigned int i, unsigned int j) {
+bool inside_map(struct HarmonicMap *map, size_t i, size_t j) {
   return i >= 0 && j >= 0 && i < map->size && j < map->size;
 }
 
 bool harmonic_eval(struct HarmonicMap *map, double *point, double *value) {
-  unsigned int n = map->size;
+  size_t n = map->size;
   double x = (point[0] - map->offset[0]) * map->scaling;
   double y = (point[1] - map->offset[1]) * map->scaling;
   int i = (int)round(x), j = (int)round(y);
@@ -266,11 +249,11 @@ bool harmonic_eval(struct HarmonicMap *map, double *point, double *value) {
 }
 
 void harmonic_write_ppm(struct HarmonicMap *map, char *filename) {
-  unsigned int n = map->size;
+  size_t n = map->size;
   FILE *f = fopen(filename, "w");
   fprintf(f, "P3\n%d %d\n255\n", n, n);
-  for (unsigned int i = 0; i < n; ++i) {
-    for (unsigned int j = 0; j < n; ++j)
+  for (size_t i = 0; i < n; ++i) {
+    for (size_t j = 0; j < n; ++j)
       if (map->grid[j*n+i].type == EXTERIOR)
         fprintf(f, "255 0 0 ");
       else
@@ -285,27 +268,27 @@ void harmonic_free(struct HarmonicMap *map) {
   free(map);
 }
 
-unsigned int harmonic_mesh_size(struct HarmonicMap *map, unsigned int downsampling) {
-  unsigned int n = map->size, count = 0;
-  unsigned int k = (unsigned int)pow(2, downsampling);
-  for (unsigned int j = k; j < n; j += k)
-    for (unsigned int i = 0; i < n - k; i += k)
+size_t harmonic_mesh_size(struct HarmonicMap *map, size_t downsampling) {
+  size_t n = map->size, count = 0;
+  size_t k = (size_t)pow(2, downsampling);
+  for (size_t j = k; j < n; j += k)
+    for (size_t i = 0; i < n - k; i += k)
       if (map->grid[j*n+i].type != EXTERIOR)
         ++count;
   return count;
 }
 
-unsigned int harmonic_mesh(struct HarmonicMap *map, unsigned int downsampling,
-                           double *vertices, unsigned int *triangles) {
-  unsigned int n = map->size, index = 0, count = 0;
-  unsigned int k = (unsigned int)pow(2, downsampling);
-  unsigned int *row = (unsigned int *)malloc(sizeof(unsigned int) * n);
+size_t harmonic_mesh(struct HarmonicMap *map, size_t downsampling,
+                           double *vertices, size_t *triangles) {
+  size_t n = map->size, index = 0, count = 0;
+  size_t k = (size_t)pow(2, downsampling);
+  size_t *row = (size_t *)malloc(sizeof(size_t) * n);
 
   /* Note: because of the enlargement, there can be no vertices in the first row,
      or at the end of a row, thus simplifying the algorithm. */
 
-  for (unsigned int j = k; j < n; j += k) {
-    for (unsigned int i = 0; i < n - k; i += k) {
+  for (size_t j = k; j < n; j += k) {
+    for (size_t i = 0; i < n - k; i += k) {
       if (map->grid[j*n+i].type == EXTERIOR)
         continue;
 
