@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
                      0, 6, 0 };
   bool success;
   double result, point[] = { 2, 2 };
-  unsigned int levels = 9;
+  size_t levels = 9;
   struct HarmonicMap *map;
 
   map = harmonic_init(7, input, levels, 1.0e-5);
@@ -31,16 +31,16 @@ int main(int argc, char **argv) {
 
   /* Mesh generation test */
 
-  unsigned int v_size = harmonic_mesh_size(map, 2);
+  size_t v_size = harmonic_mesh_size(map, 2);
   double *v = (double *)malloc(sizeof(double) * v_size * 2);
-  unsigned int *t = (unsigned int *)malloc(sizeof(unsigned int) * v_size * 6);
-  unsigned int t_size = harmonic_mesh(map, 2, v, t);
+  size_t *t = (size_t *)malloc(sizeof(size_t) * v_size * 6);
+  size_t t_size = harmonic_mesh(map, 2, v, t);
 
   FILE *f = fopen("/tmp/test.obj", "w");
-  for (unsigned int i = 0; i < v_size; ++i)
+  for (size_t i = 0; i < v_size; ++i)
     fprintf(f, "v %f %f 0.0\n", v[2*i], v[2*i+1]);
-  for (unsigned int i = 0; i < t_size; ++i)
-    fprintf(f, "f %d %d %d\n", t[3*i] + 1, t[3*i+1] + 1, t[3*i+2] + 1);
+  for (size_t i = 0; i < t_size; ++i)
+    fprintf(f, "f %zu %zu %zu\n", t[3*i] + 1, t[3*i+1] + 1, t[3*i+2] + 1);
   fclose(f);
 
   free(t);

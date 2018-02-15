@@ -248,7 +248,7 @@ bool harmonic_eval(struct HarmonicMap *map, double *point, double *value) {
 void harmonic_write_ppm(struct HarmonicMap *map, char *filename) {
   size_t n = map->size;
   FILE *f = fopen(filename, "w");
-  fprintf(f, "P3\n%d %d\n255\n", n, n);
+  fprintf(f, "P3\n%zu %zu\n255\n", n, n);
   for (size_t i = 0; i < n; ++i) {
     for (size_t j = 0; j < n; ++j)
       if (map->grid[j*n+i].type == EXTERIOR)
