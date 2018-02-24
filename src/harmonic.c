@@ -197,7 +197,7 @@ struct HarmonicMap *harmonic_init(size_t size, double *points, size_t levels, do
     int y1 = (int)round((points[i*3+1] - map->offset[1]) * map->scaling);
     double v1 = points[i*3+2];
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1; 
+    int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
     int err = (dx > dy ? dx : -dy) / 2, e2;
     for(;;) {
       double ratio;             /* linear interpolation along the sides */
