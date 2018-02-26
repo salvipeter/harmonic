@@ -64,42 +64,59 @@ void solveBiharmonic(struct GridValue *grid, size_t n, double epsilon) {
     for (size_t i = 0; i < n; ++i)
       for (size_t j = 0; j < n; ++j)
         if (!grid[j*n+i].boundary) {
-          int neighbors = 4;
+          int neighbors = 0;
           double old_value = grid[j*n+i].value;
-          grid[j*n+i].value *= 4.0;
+          grid[j*n+i].value = 0.0;
           if (j > 0 && i > 0) {
-            neighbors += 2;
-            grid[j*n+i].value += grid[(j-1)*n+i-1].value * 2.0;
+            neighbors -= 2;
+            grid[j*n+i].value -= grid[(j-1)*n+i-1].value * 2.0;
           }
           if (j > 0 && i < n - 1) {
-            neighbors += 2;
-            grid[j*n+i].value += grid[(j-1)*n+i+1].value * 2.0;
+            neighbors -= 2;
+            grid[j*n+i].value -= grid[(j-1)*n+i+1].value * 2.0;
           }
           if (j < n - 1 && i > 0) {
-            neighbors += 2;
-            grid[j*n+i].value += grid[(j+1)*n+i-1].value * 2.0;
+            neighbors -= 2;
+            grid[j*n+i].value -= grid[(j+1)*n+i-1].value * 2.0;
           }
           if (j < n - 1 && i < n - 1) {
-            neighbors += 2;
-            grid[j*n+i].value += grid[(j+1)*n+i+1].value * 2.0;
+            neighbors -= 2;
+            grid[j*n+i].value -= grid[(j+1)*n+i+1].value * 2.0;
+          }
+          if (j > 0) {
+            neighbors += 8;
+            grid[j*n+i].value += grid[(j-1)*n+i].value * 8.0;
+          }
+          if (i > 0) {
+            neighbors += 8;
+            grid[j*n+i].value += grid[j*n+i-1].value * 8.0;
+          }
+          if (j < n - 1) {
+            neighbors += 8;
+            grid[j*n+i].value += grid[(j+1)*n+i].value * 8.0;
+          }
+          if (i < n - 1) {
+            neighbors += 8;
+            grid[j*n+i].value += grid[j*n+i+1].value * 8.0;
           }
           if (j > 1) {
-            ++neighbors;
-            grid[j*n+i].value += grid[(j-2)*n+i].value;
+            --neighbors;
+            grid[j*n+i].value -= grid[(j-2)*n+i].value;
           }
           if (i > 1) {
-            ++neighbors;
-            grid[j*n+i].value += grid[j*n+i-2].value;
+            --neighbors;
+            grid[j*n+i].value -= grid[j*n+i-2].value;
           }
           if (j < n - 2) {
-            ++neighbors;
-            grid[j*n+i].value += grid[(j+2)*n+i].value;
+            --neighbors;
+            grid[j*n+i].value -= grid[(j+2)*n+i].value;
           }
           if (i < n - 2) {
-            ++neighbors;
-            grid[j*n+i].value += grid[j*n+i+2].value;
+            --neighbors;
+            grid[j*n+i].value -= grid[j*n+i+2].value;
           }
-          grid[j*n+i].value /= (double)neighbors;
+          if (neighbors)
+            grid[j*n+i].value /= (double)neighbors;
           ++count;
           change += fabs(grid[j*n+i].value - old_value);
         }
