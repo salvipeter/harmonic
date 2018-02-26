@@ -25,33 +25,23 @@ void solveHarmonic(struct GridValue *grid, size_t n, double epsilon) {
   double change;
   do {
     change = 0.0;
-    size_t count = 0;
-    for (size_t i = 0; i < n; ++i)
-      for (size_t j = 0; j < n; ++j)
-        if (!grid[j*n+i].boundary) {
-          int neighbors = 0;
-          double old_value = grid[j*n+i].value;
-          grid[j*n+i].value = 0.0;
-          if (j > 0) {
-            ++neighbors;
-            grid[j*n+i].value += grid[(j-1)*n+i].value;
-          }
-          if (i > 0) {
-            ++neighbors;
-            grid[j*n+i].value += grid[j*n+i-1].value;
-          }
-          if (j < n - 1) {
-            ++neighbors;
-            grid[j*n+i].value += grid[(j+1)*n+i].value;
-          }
-          if (i < n - 1) {
-            ++neighbors;
-            grid[j*n+i].value += grid[j*n+i+1].value;
-          }
-          grid[j*n+i].value /= (double)neighbors;
+    size_t count = 0, index = n + 1;
+    for (size_t j = 1, n_1 = n - 1; j < n_1; ++j) {
+      for (size_t i = 1; i < n_1; ++i, ++index)
+        if (!grid[index].boundary) {
+          double value = 0.0;
+          value += grid[index-n].value;
+          value += grid[index-1].value;
+          value += grid[index+n].value;
+          value += grid[index+1].value;
+          value /= 4.0;
+          change += fabs(grid[index].value - value);
+          grid[index].value = value;
           ++count;
-          change += fabs(grid[j*n+i].value - old_value);
         }
+      index += 2;
+    }
+    /* Boundary cases: not handled [the result is the same] */
     change /= (double)count;
   } while (change > epsilon);
 }
@@ -60,66 +50,132 @@ void solveBiharmonic(struct GridValue *grid, size_t n, double epsilon) {
   double change;
   do {
     change = 0.0;
-    size_t count = 0;
-    for (size_t i = 0; i < n; ++i)
-      for (size_t j = 0; j < n; ++j)
-        if (!grid[j*n+i].boundary) {
-          int neighbors = 0;
-          double old_value = grid[j*n+i].value;
-          grid[j*n+i].value = 0.0;
-          if (j > 0 && i > 0) {
-            neighbors -= 2;
-            grid[j*n+i].value -= grid[(j-1)*n+i-1].value * 2.0;
-          }
-          if (j > 0 && i < n - 1) {
-            neighbors -= 2;
-            grid[j*n+i].value -= grid[(j-1)*n+i+1].value * 2.0;
-          }
-          if (j < n - 1 && i > 0) {
-            neighbors -= 2;
-            grid[j*n+i].value -= grid[(j+1)*n+i-1].value * 2.0;
-          }
-          if (j < n - 1 && i < n - 1) {
-            neighbors -= 2;
-            grid[j*n+i].value -= grid[(j+1)*n+i+1].value * 2.0;
-          }
-          if (j > 0) {
-            neighbors += 8;
-            grid[j*n+i].value += grid[(j-1)*n+i].value * 8.0;
-          }
-          if (i > 0) {
-            neighbors += 8;
-            grid[j*n+i].value += grid[j*n+i-1].value * 8.0;
-          }
-          if (j < n - 1) {
-            neighbors += 8;
-            grid[j*n+i].value += grid[(j+1)*n+i].value * 8.0;
-          }
-          if (i < n - 1) {
-            neighbors += 8;
-            grid[j*n+i].value += grid[j*n+i+1].value * 8.0;
-          }
-          if (j > 1) {
-            --neighbors;
-            grid[j*n+i].value -= grid[(j-2)*n+i].value;
-          }
-          if (i > 1) {
-            --neighbors;
-            grid[j*n+i].value -= grid[j*n+i-2].value;
-          }
-          if (j < n - 2) {
-            --neighbors;
-            grid[j*n+i].value -= grid[(j+2)*n+i].value;
-          }
-          if (i < n - 2) {
-            --neighbors;
-            grid[j*n+i].value -= grid[j*n+i+2].value;
-          }
-          if (neighbors)
-            grid[j*n+i].value /= (double)neighbors;
+    size_t count = 0, n_2 = n - 2, n2 = n * 2, index = n2 + 2;
+    for (size_t j = 2; j < n_2; ++j) {
+      for (size_t i = 2; i < n_2; ++i, ++index)
+        if (!grid[index].boundary) {
+          double value = 0.0;
+          value += grid[index-n].value;
+          value += grid[index-1].value;
+          value += grid[index+n].value;
+          value += grid[index+1].value;
+          value *= 4.0;
+          value -= grid[index-n-1].value;
+          value -= grid[index-n+1].value;
+          value -= grid[index+n-1].value;
+          value -= grid[index+n+1].value;
+          value *= 2.0;
+          value -= grid[index-n2].value;
+          value -= grid[index-2].value;
+          value -= grid[index+n2].value;
+          value -= grid[index+2].value;
+          value /= 20.0;
+          change += fabs(grid[index].value - value);
+          grid[index].value = value;
           ++count;
-          change += fabs(grid[j*n+i].value - old_value);
         }
+      index += 4;
+    }
+    /* Boundary cases */
+    for (size_t j = 0; j < n; ++j)
+      for (size_t i = 0; i < n; ++i) {
+        if (j >= 2 && j < n_2 && i >= 2 && i < n_2)
+          continue;
+        size_t index = j * n + i;
+        if (grid[index].boundary)
+          continue;
+        int neighbors = 0;
+        double value = 0.0;
+        if (i >= 2) {
+          --neighbors;
+          value -= grid[index-2].value;
+        }
+        if (i < n_2) {
+          --neighbors;
+          value -= grid[index+2].value;
+        }
+        if (j >= 2) {
+          --neighbors;
+          value -= grid[index-n2].value;
+        }
+        if (j < n_2) {
+          --neighbors;
+          value -= grid[index+n2].value;
+        }
+        if (i >= 1 && j >= 1) {
+          neighbors -= 2;
+          value -= grid[index-n-1].value * 2;
+        }
+        if (i >= 1 && j <= n_2) {
+          neighbors -= 2;
+          value -= grid[index+n-1].value * 2;
+        }
+        if (i <= n_2 && j >= 1) {
+          neighbors -= 2;
+          value -= grid[index-n+1].value * 2;
+        }
+        if (i <= n_2 && j <= n_2) {
+          neighbors -= 2;
+          value -= grid[index+n+1].value * 2;
+        }
+        size_t base = 8;
+        if (i < 1)
+          --base;
+        if (i > n_2)
+          --base;
+        if (j < 1)
+          --base;
+        if (j > n_2)
+          --base;
+        if (i >= 1) {
+          size_t weight = base;
+          if (i == 1)
+            --weight;
+          if (j < 1)
+            --weight;
+          if (j > n_2)
+            --weight;
+          neighbors += weight;
+          value += grid[index-1].value * weight;
+        }
+        if (i <= n_2) {
+          size_t weight = base;
+          if (i == n_2)
+            --weight;
+          if (j < 1)
+            --weight;
+          if (j > n_2)
+            --weight;
+          neighbors += weight;
+          value += grid[index+1].value * weight;
+        }
+        if (j >= 1) {
+          size_t weight = base;
+          if (j == 1)
+            --weight;
+          if (i < 1)
+            --weight;
+          if (i > n_2)
+            --weight;
+          neighbors += weight;
+          value += grid[index-n].value * weight;
+        }
+        if (j <= n_2) {
+          size_t weight = base;
+          if (j == n_2)
+            --weight;
+          if (i < 1)
+            --weight;
+          if (i > n_2)
+            --weight;
+          neighbors += weight;
+          value += grid[index+n].value * weight;
+        }
+        value /= (double)neighbors;
+        change += fabs(grid[index].value - value);
+        grid[index].value = value;
+        ++count;
+      }
     change /= (double)count;
   } while (change > epsilon);
 }
@@ -216,7 +272,7 @@ struct HarmonicMap *harmonic_init(size_t size, double *points, size_t levels, do
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
     int err = (dx > dy ? dx : -dy) / 2, e2;
-    for(;;) {
+    while (true) {
       double ratio;             /* linear interpolation along the sides */
       if (err > 0)
         ratio = (double)abs(x1 - x0) / (double)dx;
