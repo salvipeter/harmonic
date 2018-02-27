@@ -84,94 +84,117 @@ void solveBiharmonic(struct GridValue *grid, size_t n, double epsilon) {
         size_t index = j * n + i;
         if (grid[index].boundary)
           continue;
-        int neighbors = 0;
+        double weight = 0.0;
         double value = 0.0;
-        if (i >= 2) {
-          --neighbors;
-          value -= grid[index-2].value;
-        }
-        if (i < n_2) {
-          --neighbors;
-          value -= grid[index+2].value;
-        }
-        if (j >= 2) {
-          --neighbors;
-          value -= grid[index-n2].value;
-        }
-        if (j < n_2) {
-          --neighbors;
-          value -= grid[index+n2].value;
-        }
-        if (i >= 1 && j >= 1) {
-          neighbors -= 2;
-          value -= grid[index-n-1].value * 2;
-        }
-        if (i >= 1 && j <= n_2) {
-          neighbors -= 2;
-          value -= grid[index+n-1].value * 2;
-        }
-        if (i <= n_2 && j >= 1) {
-          neighbors -= 2;
-          value -= grid[index-n+1].value * 2;
-        }
-        if (i <= n_2 && j <= n_2) {
-          neighbors -= 2;
-          value -= grid[index+n+1].value * 2;
-        }
-        size_t base = 8;
-        if (i < 1)
-          --base;
-        if (i > n_2)
-          --base;
-        if (j < 1)
-          --base;
-        if (j > n_2)
-          --base;
-        if (i >= 1) {
-          size_t weight = base;
+        if (i > 0) {
+          size_t k = index - 1;
+          weight += 2.0;
+          value += grid[k].value * 2.0;
+          int neighbors = 4;
           if (i == 1)
-            --weight;
-          if (j < 1)
-            --weight;
-          if (j > n_2)
-            --weight;
-          neighbors += weight;
-          value += grid[index-1].value * weight;
+            --neighbors;
+          if (i == n - 1)
+            --neighbors;
+          if (j == 0)
+            --neighbors;
+          if (j == n - 1)
+            --neighbors;
+          double w = 1.0 / (double)neighbors;
+          if (i > 1) {
+            weight -= w;
+            value -= grid[k-1].value * w;
+          }
+          if (j > 0) {
+            weight -= w;
+            value -= grid[k-n].value * w;
+          }
+          if (j < n - 1) {
+            weight -= w;
+            value -= grid[k+n].value * w;
+          }
         }
-        if (i <= n_2) {
-          size_t weight = base;
-          if (i == n_2)
-            --weight;
-          if (j < 1)
-            --weight;
-          if (j > n_2)
-            --weight;
-          neighbors += weight;
-          value += grid[index+1].value * weight;
+        if (i < n - 1) {
+          size_t k = index + 1;
+          weight += 2.0;
+          value += grid[k].value * 2.0;
+          int neighbors = 4;
+          if (i == 0)
+            --neighbors;
+          if (i == n - 2)
+            --neighbors;
+          if (j == 0)
+            --neighbors;
+          if (j == n - 1)
+            --neighbors;
+          double w = 1.0 / (double)neighbors;
+          if (i < n - 2) {
+            weight -= w;
+            value -= grid[k+1].value * w;
+          }
+          if (j > 0) {
+            weight -= w;
+            value -= grid[k-n].value * w;
+          }
+          if (j < n - 1) {
+            weight -= w;
+            value -= grid[k+n].value * w;
+          }
         }
-        if (j >= 1) {
-          size_t weight = base;
+        if (j > 0) {
+          size_t k = index - n;
+          weight += 2.0;
+          value += grid[k].value * 2.0;
+          int neighbors = 4;
+          if (i == 0)
+            --neighbors;
+          if (i == n - 1)
+            --neighbors;
           if (j == 1)
-            --weight;
-          if (i < 1)
-            --weight;
-          if (i > n_2)
-            --weight;
-          neighbors += weight;
-          value += grid[index-n].value * weight;
+            --neighbors;
+          if (j == n - 1)
+            --neighbors;
+          double w = 1.0 / (double)neighbors;
+          if (i > 0) {
+            weight -= w;
+            value -= grid[k-1].value * w;
+          }
+          if (i < n - 1) {
+            weight -= w;
+            value -= grid[k+1].value * w;
+          }
+          if (j > 1) {
+            weight -= w;
+            value -= grid[k-n].value * w;
+          }
         }
-        if (j <= n_2) {
-          size_t weight = base;
-          if (j == n_2)
-            --weight;
-          if (i < 1)
-            --weight;
-          if (i > n_2)
-            --weight;
-          neighbors += weight;
-          value += grid[index+n].value * weight;
+        if (j < n - 1) {
+          size_t k = index + n;
+          weight += 2.0;
+          value += grid[k].value * 2.0;
+          int neighbors = 4;
+          if (i == 0)
+            --neighbors;
+          if (i == n - 1)
+            --neighbors;
+          if (j == 0)
+            --neighbors;
+          if (j == n - 2)
+            --neighbors;
+          double w = 1.0 / (double)neighbors;
+          if (i > 0) {
+            weight -= w;
+            value -= grid[k-1].value * w;
+          }
+          if (i < n - 1) {
+            weight -= w;
+            value -= grid[k+1].value * w;
+          }
+          if (j < n - 2) {
+            weight -= w;
+            value -= grid[k+n].value * w;
+          }
         }
-        value /= (double)neighbors;
+        value /= weight;
         change += fabs(grid[index].value - value);
         grid[index].value = value;
         ++count;
