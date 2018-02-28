@@ -93,8 +93,6 @@ void solveBiharmonic(struct GridValue *grid, size_t n, double epsilon) {
           int neighbors = 4;
           if (i == 1)
             --neighbors;
-          if (i == n - 1)
-            --neighbors;
           if (j == 0)
             --neighbors;
           if (j == n - 1)
@@ -118,8 +116,6 @@ void solveBiharmonic(struct GridValue *grid, size_t n, double epsilon) {
           weight += 2.0;
           value += grid[k].value * 2.0;
           int neighbors = 4;
-          if (i == 0)
-            --neighbors;
           if (i == n - 2)
             --neighbors;
           if (j == 0)
@@ -151,8 +147,6 @@ void solveBiharmonic(struct GridValue *grid, size_t n, double epsilon) {
             --neighbors;
           if (j == 1)
             --neighbors;
-          if (j == n - 1)
-            --neighbors;
           double w = 1.0 / (double)neighbors;
           if (i > 0) {
             weight -= w;
@@ -175,8 +169,6 @@ void solveBiharmonic(struct GridValue *grid, size_t n, double epsilon) {
           if (i == 0)
             --neighbors;
           if (i == n - 1)
-            --neighbors;
-          if (j == 0)
             --neighbors;
           if (j == n - 2)
             --neighbors;
