@@ -10,10 +10,13 @@
 extern "C" {
 #endif
 
-/* points contains 3*size values: x0,y0,v0, x1,y1,v1, etc.
-   epsilon is the minimal average change to continue the solver iteration */
-struct HarmonicMap *harmonic_init(size_t size, double *points, size_t levels, double epsilon,
-                                  bool biharmonic);
+struct HarmonicMap *harmonic_create(double *min, double *max, size_t levels);
+
+void harmonic_add_point(struct HarmonicMap *map, double *point);
+
+void harmonic_add_line(struct HarmonicMap *map, double *from, double *to);
+
+void harmonic_solve(struct HarmonicMap *map, double epsilon, bool biharmonic);
 
 bool harmonic_eval(struct HarmonicMap *map, double *point, double *value);
 

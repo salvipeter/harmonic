@@ -11,7 +11,7 @@ struct GridValue {
 };
 
 struct HarmonicMap {
-  size_t size;
+  size_t levels, size;
   struct GridValue *grid;
   double offset[2];
   double scaling;
@@ -243,70 +243,65 @@ void solve(struct GridValue *grid, size_t level, double epsilon, bool biharmonic
     solveHarmonic(grid, n, epsilon);
 }
 
-struct HarmonicMap *harmonic_init(size_t size, double *points, size_t levels, double epsilon,
-                                  bool biharmonic) {
+struct HarmonicMap *harmonic_create(double *min, double *max, size_t levels) {
   /* Create the grid */
   size_t n = (size_t)pow(2, levels);
   struct HarmonicMap *map = (struct HarmonicMap *)malloc(sizeof(struct HarmonicMap));
+  map->levels = levels;
   map->size = n;
   map->grid = (struct GridValue *)malloc(n * n * sizeof(struct GridValue));
 
-  /* Bounding box computation */
-  double min[2], max[2];
-  min[0] = max[0] = points[0]; min[1] = max[1] = points[1];
-  for (size_t i = 1; i < size; ++i) {
-    if (points[i*3] < min[0])
-      min[0] = points[i*3];
-    else if (points[i*3] > max[0])
-      max[0] = points[i*3];
-    if (points[i*3+1] < min[1])
-      min[1] = points[i*3+1];
-    else if (points[i*3+1] > max[1])
-      max[1] = points[i*3+1];
-  }
-  double length = MAX(max[0] - min[0], max[1] - min[1]);
-
   /* Add a margin of 2.5% on all sides */
+  double length = MAX(max[0] - min[0], max[1] - min[1]);
   map->offset[0] = min[0] - length * 0.025;
   map->offset[1] = min[1] - length * 0.025;
   map->scaling = (double)n / length / 1.05;
 
-  /* Fill boundary cells */
+  /* Initialize cells */
   for (size_t i = 0; i < n * n; ++i) {
     map->grid[i].boundary = false;
     map->grid[i].value = 0.0;
   }
-  int x0 = (int)round((points[size*3-3] - map->offset[0]) * map->scaling);
-  int y0 = (int)round((points[size*3-2] - map->offset[1]) * map->scaling);
-  double v0 = points[size*3-1];
-  for (size_t i = 0; i < size; ++i) {
-    /* line drawing from Rosetta Code [Bresenham's algorithm] */
-    int x1 = (int)round((points[i*3] - map->offset[0]) * map->scaling);
-    int y1 = (int)round((points[i*3+1] - map->offset[1]) * map->scaling);
-    double v1 = points[i*3+2];
-    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    int err = (dx > dy ? dx : -dy) / 2, e2;
-    while (true) {
-      double ratio;             /* linear interpolation along the sides */
-      if (err > 0)
-        ratio = (double)abs(x1 - x0) / (double)dx;
-      else
-        ratio = (double)abs(y1 - y0) / (double)dy;
-      map->grid[y0*n+x0].boundary = true;
-      map->grid[y0*n+x0].value = v0 * ratio + v1 * (1.0 - ratio);
-      if (x0 == x1 && y0 == y1) break;
-      e2 = err;
-      if (e2 > -dx) { err -= dy; x0 += sx; }
-      if (e2 <  dy) { err += dx; y0 += sy; }
-    }
-    v0 = v1;
-  }
-
-  /* Find the solution for the discrete problem */
-  solve(map->grid, levels, epsilon, biharmonic);
 
   return map;
+}
+
+void harmonic_add_point(struct HarmonicMap *map, double *point) {
+  size_t n = map->size;
+  int x = (int)round((point[0] - map->offset[0]) * map->scaling);
+  int y = (int)round((point[1] - map->offset[1]) * map->scaling);
+  map->grid[y*n+x].boundary = true;
+  map->grid[y*n+x].value = point[2];
+}
+
+void harmonic_add_line(struct HarmonicMap *map, double *from, double *to) {
+  size_t n = map->size;
+  int x0 = (int)round((from[0] - map->offset[0]) * map->scaling);
+  int y0 = (int)round((from[1] - map->offset[1]) * map->scaling);
+  double v0 = from[2];
+  int x1 = (int)round((to[0] - map->offset[0]) * map->scaling);
+  int y1 = (int)round((to[1] - map->offset[1]) * map->scaling);
+  double v1 = to[2];
+  int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+  int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+  int err = (dx > dy ? dx : -dy) / 2, e2;
+  while (true) {
+    double ratio;             /* linear interpolation along the sides */
+    if (err > 0)
+      ratio = (double)abs(x1 - x0) / (double)dx;
+    else
+      ratio = (double)abs(y1 - y0) / (double)dy;
+    map->grid[y0*n+x0].boundary = true;
+    map->grid[y0*n+x0].value = v0 * ratio + v1 * (1.0 - ratio);
+    if (x0 == x1 && y0 == y1) break;
+    e2 = err;
+    if (e2 > -dx) { err -= dy; x0 += sx; }
+    if (e2 <  dy) { err += dx; y0 += sy; }
+  }
+}
+
+void harmonic_solve(struct HarmonicMap *map, double epsilon, bool biharmonic) {
+  solve(map->grid, map->levels, epsilon, biharmonic);
 }
 
 bool inside_map(struct HarmonicMap *map, size_t i, size_t j) {
