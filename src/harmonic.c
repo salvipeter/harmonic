@@ -21,6 +21,7 @@ struct HarmonicMap {
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
+static
 void solveHarmonic(struct GridValue *grid, size_t n, double epsilon) {
   double change;
   do {
@@ -46,6 +47,7 @@ void solveHarmonic(struct GridValue *grid, size_t n, double epsilon) {
   } while (change > epsilon);
 }
 
+static
 void solveBiharmonic(struct GridValue *grid, size_t n, double epsilon) {
   double change;
   do {
@@ -195,6 +197,7 @@ void solveBiharmonic(struct GridValue *grid, size_t n, double epsilon) {
   } while (change > epsilon);
 }
 
+static
 void solve(struct GridValue *grid, size_t level, double epsilon, bool biharmonic) {
   size_t n = (size_t)pow(2, level);
   if (level > MIN_LEVEL) {
@@ -243,7 +246,7 @@ void solve(struct GridValue *grid, size_t level, double epsilon, bool biharmonic
     solveHarmonic(grid, n, epsilon);
 }
 
-struct HarmonicMap *harmonic_create(double *min, double *max, size_t levels) {
+struct HarmonicMap *harmonic_create(const double *min, const double *max, size_t levels) {
   /* Create the grid */
   size_t n = (size_t)pow(2, levels);
   struct HarmonicMap *map = (struct HarmonicMap *)malloc(sizeof(struct HarmonicMap));
@@ -266,7 +269,7 @@ struct HarmonicMap *harmonic_create(double *min, double *max, size_t levels) {
   return map;
 }
 
-void harmonic_add_point(struct HarmonicMap *map, double *point) {
+void harmonic_add_point(struct HarmonicMap *map, const double *point) {
   size_t n = map->size;
   int x = (int)round((point[0] - map->offset[0]) * map->scaling);
   int y = (int)round((point[1] - map->offset[1]) * map->scaling);
@@ -274,7 +277,7 @@ void harmonic_add_point(struct HarmonicMap *map, double *point) {
   map->grid[y*n+x].value = point[2];
 }
 
-void harmonic_add_line(struct HarmonicMap *map, double *from, double *to) {
+void harmonic_add_line(struct HarmonicMap *map, const double *from, const double *to) {
   size_t n = map->size;
   int x0 = (int)round((from[0] - map->offset[0]) * map->scaling);
   int y0 = (int)round((from[1] - map->offset[1]) * map->scaling);
@@ -304,11 +307,12 @@ void harmonic_solve(struct HarmonicMap *map, double epsilon, bool biharmonic) {
   solve(map->grid, map->levels, epsilon, biharmonic);
 }
 
-bool inside_map(struct HarmonicMap *map, size_t i, size_t j) {
+static
+bool inside_map(const struct HarmonicMap *map, size_t i, size_t j) {
   return i >= 0 && j >= 0 && i < map->size && j < map->size;
 }
 
-bool harmonic_eval(struct HarmonicMap *map, double *point, double *value) {
+bool harmonic_eval(const struct HarmonicMap *map, const double *point, double *value) {
   size_t n = map->size;
   double x = (point[0] - map->offset[0]) * map->scaling;
   double y = (point[1] - map->offset[1]) * map->scaling;
@@ -328,7 +332,7 @@ bool harmonic_eval(struct HarmonicMap *map, double *point, double *value) {
   return true;
 }
 
-void harmonic_write_ppm(struct HarmonicMap *map, char *filename) {
+void harmonic_write_ppm(const struct HarmonicMap *map, const char *filename) {
   size_t n = map->size;
   FILE *f = fopen(filename, "w");
   fprintf(f, "P3\n%zu %zu\n255\n", n, n);
