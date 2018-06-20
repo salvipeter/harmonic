@@ -350,9 +350,9 @@ bool harmonic_eval(const struct HarmonicMap *map, const double *point, double *v
   double y = (point[1] - map->offset[1]) * map->scaling;
   int i = (int)round(x), j = (int)round(y);
   
-  if (!(inside_map(map, i, j) ||
-        inside_map(map, i, j + 1) ||
-        inside_map(map, i + 1, j) ||
+  if (!(inside_map(map, i, j) &&
+        inside_map(map, i, j + 1) &&
+        inside_map(map, i + 1, j) &&
         inside_map(map, i + 1, j + 1)))
     return false;               /* The point is outside the region */
 
