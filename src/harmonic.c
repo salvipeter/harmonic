@@ -288,6 +288,13 @@ void harmonic_add_line(struct HarmonicMap *map, const double *from, const double
   int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
   int dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
   int err = (dx > dy ? dx : -dy) / 2, e2;
+  if (err == 0) {
+    map->grid[y0*n+x0].boundary = true;
+    map->grid[y0*n+x0].value = v0;
+    map->grid[y1*n+x1].boundary = true;
+    map->grid[y1*n+x1].value = v1;
+    return;
+  }
   while (true) {
     double ratio;             /* linear interpolation along the sides */
     if (err > 0)
@@ -303,10 +310,12 @@ void harmonic_add_line(struct HarmonicMap *map, const double *from, const double
   }
 }
 
-void harmonic_add_curve(struct HarmonicMap *map, const double *points, size_t n, size_t resolution) {
+void harmonic_add_curve(struct HarmonicMap *map, const double *points, size_t n) {
+  size_t resolution = map->size;
   double *coeff = (double *)malloc(sizeof(double) * n);
   double p[6], *from = p, *to = p + 3;
   from[0] = points[0]; from[1] = points[1]; from[2] = points[2];
+  double start = from[2], end = points[3*n-1];
   for (size_t i = 1; i <= resolution; ++i) {
     double u = (double)i / resolution;
     /* Compute Bernstein polynomials */
@@ -321,10 +330,12 @@ void harmonic_add_curve(struct HarmonicMap *map, const double *points, size_t n,
       coeff[j] = saved;
     }
     /* Evaluate the curve */
-    to[0] = 0.0; to[1] = 0.0; to[2] = 0.0;
-    for (size_t j = 0; j < n; ++j)
-      for (size_t k = 0; k < 3; ++k)
+    to[0] = 0.0; to[1] = 0.0;
+    for (size_t j = 0; j < n; ++j) {
+      for (size_t k = 0; k < 2; ++k)
         to[k] += points[3*j+k] * coeff[j];
+    }
+    to[2] = start * (1.0 - u) + end * u;
     /* Draw a segment */
     harmonic_add_line(map, from, to);
     /* Swap from & to */

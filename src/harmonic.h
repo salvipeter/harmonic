@@ -16,7 +16,7 @@ void harmonic_add_point(struct HarmonicMap *map, const double *point);
 
 void harmonic_add_line(struct HarmonicMap *map, const double *from, const double *to);
 
-void harmonic_add_curve(struct HarmonicMap *map, const double *points, size_t n, size_t resolution);
+void harmonic_add_curve(struct HarmonicMap *map, const double *points, size_t n);
 
 void harmonic_solve(struct HarmonicMap *map, double epsilon, bool biharmonic);
 
