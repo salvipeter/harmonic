@@ -315,7 +315,6 @@ void harmonic_add_curve(struct HarmonicMap *map, const double *points, size_t n)
   double *coeff = (double *)malloc(sizeof(double) * n);
   double p[6], *from = p, *to = p + 3;
   from[0] = points[0]; from[1] = points[1]; from[2] = points[2];
-  double start = from[2], end = points[3*n-1];
   for (size_t i = 1; i <= resolution; ++i) {
     double u = (double)i / resolution;
     /* Compute Bernstein polynomials */
@@ -330,12 +329,11 @@ void harmonic_add_curve(struct HarmonicMap *map, const double *points, size_t n)
       coeff[j] = saved;
     }
     /* Evaluate the curve */
-    to[0] = 0.0; to[1] = 0.0;
+    to[0] = 0.0; to[1] = 0.0; to[2] = 0.0;
     for (size_t j = 0; j < n; ++j) {
-      for (size_t k = 0; k < 2; ++k)
+      for (size_t k = 0; k < 3; ++k)
         to[k] += points[3*j+k] * coeff[j];
     }
-    to[2] = start * (1.0 - u) + end * u;
     /* Draw a segment */
     harmonic_add_line(map, from, to);
     /* Swap from & to */
