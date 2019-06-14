@@ -1,6 +1,9 @@
 target
 Cargo.lock
 *~
+*.user
 Debug/*
 Release/*
+x64/*
+.vs/*
 *.filters
